@@ -1,188 +1,22 @@
 <!DOCTYPE html>
 <html lang="ru">
 <head>
-<meta charset="UTF-8" />
-<meta name="viewport" content="width=device-width, initial-scale=1" />
-<title>Stik Token</title>
-<style>
-  body, html {
-    margin: 0; padding: 0; overflow: hidden;
-    background: black; color: white;
-    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-    user-select: none;
-  }
-  #canvas {
-    position: fixed;
-    top: 0; left: 0; width: 100vw; height: 100vh;
-    z-index: 0;
-  }
-  .content {
-    position: relative; z-index: 1;
-    max-width: 600px; margin: 50px auto;
-    text-align: center;
-  }
-  h1 {
-    color: #9b59b6;
-    font-weight: 900;
-  }
-  button {
-    padding: 10px 20px;
-    background: #8e44ad;
-    border: none;
-    border-radius: 5px;
-    color: white;
-    font-size: 16px;
-    cursor: pointer;
-    margin-top: 20px;
-  }
-  button:hover {
-    background: #732d91;
-  }
-  #balance {
-    margin-top: 15px;
-    font-size: 18px;
-    color: #bdc3c7;
-  }
-</style>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>STIK Token</title>
+  <link rel="stylesheet" href="style.css">
 </head>
 <body>
+  <div class="menu-icon" onclick="toggleMenu()">☰</div>
+  <div id="menu" class="menu">
+    <img src="logo.png" alt="STIK Logo" class="menu-logo">
+    <h2>STIK</h2>
+    <button onclick="connectWallet()">Подключить кошелёк</button>
+  </div>
 
-<canvas id="canvas"></canvas>
+  <canvas id="canvas"></canvas>
 
-<div class="content">
-  <h1>Stik Token ♦️</h1>
-  <p>
-    Это не просто токен.<br />
-    Это цифровая капля твоего времени, кристаллизованная в блокчейне. Каждый клик — как удар сердца, каждый апгрейд — шаг в эволюции.<br /><br />
-    Ты вложил в него не просто деньги — ты вложил <strong>свои ночи, свою одержимость, ту самую любовь, которая превращает код в искусство</strong>.<br /><br />
-    Stik — это твой след в цифровой вселенной. Скромный, но бесконечно ценный. Как рукописная заметка на полях великой книги Web3.<br /><br />
-    Он растёт. Ты растешь. Вместе.<br /><br />
-    (И да, он ещё и приносит прибыль. Но это просто приятный бонус).<br /><br />
-    Stik. Ты чувствуешь?
-  </p>
-  <button id="connectBtn">Подключить Metamask</button>
-  <div id="balance"></div>
-</div>
-
-<script src="https://cdn.jsdelivr.net/npm/ethers@5.7.2/dist/ethers.min.js"></script>
-<script>
-  // Canvas lines animation
-  const canvas = document.getElementById('canvas');
-  const ctx = canvas.getContext('2d');
-  let w, h;
-  let lines = [];
-  const maxLines = 100;
-  let targetX = null;
-  let targetY = null;
-
-  function resize() {
-    w = window.innerWidth;
-    h = window.innerHeight;
-    canvas.width = w;
-    canvas.height = h;
-  }
-  window.addEventListener('resize', resize);
-  resize();
-
-  class Line {
-    constructor() {
-      this.reset();
-    }
-    reset() {
-      this.x = w/2;
-      this.y = h/2;
-      this.speed = 1 + Math.random()*2;
-      this.angle = Math.random() * 2 * Math.PI;
-      this.length = 30 + Math.random()*40;
-      this.progress = 0;
-      this.dirX = Math.cos(this.angle);
-      this.dirY = Math.sin(this.angle);
-    }
-    update() {
-      if(targetX !== null && targetY !== null){
-        const dx = targetX - this.x;
-        const dy = targetY - this.y;
-        const dist = Math.sqrt(dx*dx + dy*dy);
-        if(dist > 1){
-          this.dirX = dx / dist;
-          this.dirY = dy / dist;
-        }
-      }
-      this.x += this.dirX * this.speed;
-      this.y += this.dirY * this.speed;
-      this.progress += this.speed;
-      if(this.progress > this.length || this.x < 0 || this.x > w || this.y < 0 || this.y > h){
-        this.reset();
-      }
-    }
-    draw() {
-      ctx.strokeStyle = 'rgba(155, 89, 182, 0.8)';
-      ctx.lineWidth = 2;
-      ctx.beginPath();
-      ctx.moveTo(this.x, this.y);
-      ctx.lineTo(this.x - this.dirX * 10, this.y - this.dirY * 10);
-      ctx.stroke();
-    }
-  }
-
-  for(let i=0; i<maxLines; i++){
-    lines.push(new Line());
-  }
-
-  function animate() {
-    ctx.clearRect(0, 0, w, h);
-    lines.forEach(line => {
-      line.update();
-      line.draw();
-    });
-    requestAnimationFrame(animate);
-  }
-  animate();
-
-  canvas.addEventListener('click', e => {
-    targetX = e.clientX;
-    targetY = e.clientY;
-  });
-
-  // Metamask connect and balance display
-  const connectBtn = document.getElementById('connectBtn');
-  const balanceDiv = document.getElementById('balance');
-
-  const tokenAddress = '0x7673eF09C77715C29d909Aa724Edeb7d4260275D';
-  const tokenAbi = [
-    "function balanceOf(address owner) view returns (uint256)",
-    "function decimals() view returns (uint8)",
-    "function symbol() view returns (string)"
-  ];
-
-  let provider;
-  let signer;
-
-  connectBtn.onclick = async () => {
-    if(typeof window.ethereum === 'undefined'){
-      alert('Установи Metamask, чтобы подключиться');
-      return;
-    }
-    try {
-      await window.ethereum.request({ method: 'eth_requestAccounts' });
-      provider = new ethers.providers.Web3Provider(window.ethereum);
-      signer = provider.getSigner();
-
-      const tokenContract = new ethers.Contract(tokenAddress, tokenAbi, provider);
-      const userAddress = await signer.getAddress();
-      const balanceRaw = await tokenContract.balanceOf(userAddress);
-      const decimals = await tokenContract.decimals();
-      const symbol = await tokenContract.symbol();
-
-      const balance = balanceRaw / (10 ** decimals);
-      balanceDiv.innerText = `Баланс: ${balance.toFixed(4)} ${symbol}`;
-      connectBtn.innerText = 'Кошелёк подключён';
-      connectBtn.disabled = true;
-    } catch (err) {
-      alert('Ошибка подключения: ' + err.message);
-    }
-  };
-</script>
-
+  <script src="https://cdn.jsdelivr.net/npm/ethers@5.7.2/dist/ethers.min.js"></script>
+  <script src="script.js"></script>
 </body>
-  </html>
+</html>
